@@ -39,6 +39,11 @@ button {
   cursor: pointer;
 }
 
+button[hidden],
+[hidden] {
+  display: none !important;
+}
+
 body.is-busy button,
 body.is-busy input,
 body.is-busy select {
@@ -51,6 +56,23 @@ body.is-busy select {
   justify-content: space-between;
   gap: 24px;
   padding: 32px clamp(18px, 4vw, 52px) 18px;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.user-email {
+  max-width: 260px;
+  overflow: hidden;
+  color: var(--muted);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-header h1,
@@ -78,6 +100,45 @@ body.is-busy select {
   grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
   gap: 22px;
   padding: 12px clamp(18px, 4vw, 52px) 44px;
+}
+
+.auth-shell {
+  display: grid;
+  min-height: 48vh;
+  place-items: center;
+  padding: 12px clamp(18px, 4vw, 52px) 44px;
+}
+
+.auth-panel {
+  display: grid;
+  width: min(100%, 430px);
+  gap: 14px;
+  border: 1px solid rgba(216, 223, 218, 0.95);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow);
+  padding: clamp(18px, 3vw, 28px);
+}
+
+.auth-panel h2 {
+  margin: 0 0 4px;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  letter-spacing: 0;
+}
+
+.auth-panel button {
+  min-height: 44px;
+  border-radius: 7px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 900;
+}
+
+.auth-error {
+  min-height: 20px;
+  margin: 0;
+  color: var(--red);
+  font-weight: 800;
 }
 
 .panel {

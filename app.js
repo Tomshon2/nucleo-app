@@ -6,6 +6,16 @@ let state = {
   filter: "all",
 };
 
+let currentSession = null;
+
+const appShell = document.querySelector("#appShell");
+const authGate = document.querySelector("#authGate");
+const authForm = document.querySelector("#authForm");
+const authEmailInput = document.querySelector("#authEmailInput");
+const authPasswordInput = document.querySelector("#authPasswordInput");
+const authError = document.querySelector("#authError");
+const logoutButton = document.querySelector("#logoutButton");
+const userEmail = document.querySelector("#userEmail");
 const roleForm = document.querySelector("#roleForm");
 const roleNameInput = document.querySelector("#roleNameInput");
 const roleList = document.querySelector("#roleList");
@@ -22,6 +32,7 @@ const filterButtons = document.querySelectorAll(".filter-button");
 const syncStatus = document.querySelector("#syncStatus");
 
 function setStatus(message, type = "idle") {
+  if (!syncStatus) return;
   syncStatus.textContent = message;
   syncStatus.dataset.type = type;
 }
@@ -33,6 +44,10 @@ function setBusy(isBusy) {
 async function loadState() {
   if (!hasSupabaseConfig) {
     setStatus("Coloca o URL e a chave no ficheiro .env", "error");
+    return;
+  }
+
+  if (!currentSession) {
     return;
   }
 
@@ -116,6 +131,55 @@ function render() {
   renderRoles();
   renderAssigneeOptions(taskAssigneeInput);
   renderTasks();
+}
+
+async function initAuth() {
+  if (!hasSupabaseConfig) {
+    showLoggedOut("Configura primeiro o Supabase no ficheiro .env.");
+    return;
+  }
+
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    showLoggedOut(error.message);
+    return;
+  }
+
+  updateAuthView(data.session);
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    updateAuthView(session);
+  });
+}
+
+function updateAuthView(session) {
+  currentSession = session;
+
+  if (!session) {
+    showLoggedOut();
+    return;
+  }
+
+  authGate.hidden = true;
+  appShell.hidden = false;
+  logoutButton.hidden = false;
+  resetDemoButton.hidden = false;
+  userEmail.hidden = false;
+  userEmail.textContent = session.user.email || "Sessao ativa";
+  authError.textContent = "";
+  loadState();
+}
+
+function showLoggedOut(message = "") {
+  currentSession = null;
+  state = { roles: [], tasks: [], filter: "all" };
+  appShell.hidden = true;
+  authGate.hidden = false;
+  logoutButton.hidden = true;
+  resetDemoButton.hidden = true;
+  userEmail.hidden = true;
+  userEmail.textContent = "";
+  authError.textContent = message;
 }
 
 function renderRoles() {
@@ -296,6 +360,11 @@ async function runMutation(action) {
     return;
   }
 
+  if (!currentSession) {
+    showLoggedOut("Tens de iniciar sessao para modificar a app.");
+    return;
+  }
+
   setBusy(true);
   setStatus("A guardar...", "idle");
 
@@ -422,4 +491,30 @@ resetDemoButton.addEventListener("click", async () => {
   });
 });
 
-loadState();
+authForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const email = authEmailInput.value.trim();
+  const password = authPasswordInput.value;
+  if (!email || !password) return;
+
+  authError.textContent = "";
+  setBusy(true);
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    authError.textContent = getFriendlyErrorMessage(error);
+  }
+
+  setBusy(false);
+});
+
+logoutButton.addEventListener("click", async () => {
+  await supabase.auth.signOut();
+});
+
+initAuth();

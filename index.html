@@ -12,10 +12,31 @@
         <p class="eyebrow">N&uacute;cleo</p>
         <h1>Organiza&ccedil;&atilde;o e tarefas</h1>
       </div>
-      <button class="ghost-button" id="resetDemoButton" type="button">Limpar tudo</button>
+      <div class="header-actions">
+        <span class="user-email" id="userEmail" hidden></span>
+        <button class="ghost-button" id="logoutButton" type="button" hidden>Sair</button>
+        <button class="ghost-button" id="resetDemoButton" type="button" hidden>Limpar tudo</button>
+      </div>
     </header>
 
-    <main class="app-shell">
+    <section class="auth-shell" id="authGate">
+      <form class="auth-panel" id="authForm">
+        <p class="eyebrow">Acesso reservado</p>
+        <h2>Entrar no n&uacute;cleo</h2>
+        <label>
+          Email
+          <input id="authEmailInput" type="email" autocomplete="email" placeholder="teu@email.com" required>
+        </label>
+        <label>
+          Password
+          <input id="authPasswordInput" type="password" autocomplete="current-password" placeholder="Password" required>
+        </label>
+        <button type="submit">Entrar</button>
+        <p class="auth-error" id="authError" role="alert"></p>
+      </form>
+    </section>
+
+    <main class="app-shell" id="appShell" hidden>
       <section class="panel hierarchy-panel" aria-labelledby="rolesTitle">
         <div class="section-title">
           <div>
