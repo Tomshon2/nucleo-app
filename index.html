@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestor do N&uacute;cleo</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">N&uacute;cleo</p>
+        <h1>Organiza&ccedil;&atilde;o e tarefas</h1>
+      </div>
+      <button class="ghost-button" id="resetDemoButton" type="button">Limpar tudo</button>
+    </header>
+
+    <main class="app-shell">
+      <section class="panel hierarchy-panel" aria-labelledby="rolesTitle">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Cargos</p>
+            <h2 id="rolesTitle">Estrutura da equipa</h2>
+          </div>
+          <div class="header-meta">
+            <span class="sync-status" id="syncStatus" data-type="idle">A ligar...</span>
+            <span class="count-pill" id="memberCount">0 colegas</span>
+          </div>
+        </div>
+
+        <form class="add-form" id="roleForm">
+          <label>
+            Cargo
+            <input id="roleNameInput" name="roleName" placeholder="Ex.: Presidente" required>
+          </label>
+          <button type="submit">Adicionar cargo</button>
+        </form>
+
+        <div class="role-list" id="roleList" aria-live="polite"></div>
+      </section>
+
+      <section class="panel tasks-panel" aria-labelledby="tasksTitle">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Tarefas</p>
+            <h2 id="tasksTitle">Lista de tarefas</h2>
+          </div>
+          <div class="task-filters" role="group" aria-label="Filtrar tarefas">
+            <button class="filter-button active" type="button" data-filter="all">Todas</button>
+            <button class="filter-button" type="button" data-filter="open">Abertas</button>
+            <button class="filter-button" type="button" data-filter="done">Feitas</button>
+          </div>
+        </div>
+
+        <form class="task-form" id="taskForm">
+          <label class="task-name-field">
+            Tarefa
+            <input id="taskTitleInput" name="taskTitle" placeholder="Ex.: Preparar ata da reuni&atilde;o" required>
+          </label>
+          <label>
+            Colega
+            <select id="taskAssigneeInput" name="taskAssignee"></select>
+          </label>
+          <button type="submit">Adicionar</button>
+        </form>
+
+        <div class="task-list" id="taskList" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <template id="roleTemplate">
+      <article class="role-card">
+        <div class="role-card-header">
+          <div class="role-rank"></div>
+          <input class="role-name-input" aria-label="Nome do cargo">
+          <div class="icon-actions">
+            <button class="icon-button move-up" type="button" title="Subir cargo" aria-label="Subir cargo">&uarr;</button>
+            <button class="icon-button move-down" type="button" title="Descer cargo" aria-label="Descer cargo">&darr;</button>
+            <button class="icon-button danger remove-role" type="button" title="Remover cargo" aria-label="Remover cargo">&times;</button>
+          </div>
+        </div>
+        <div class="member-list"></div>
+        <form class="member-form">
+          <input class="member-name-input" placeholder="Nome do colega" aria-label="Nome do colega" required>
+          <button type="submit">Adicionar nome</button>
+        </form>
+      </article>
+    </template>
+
+    <template id="memberTemplate">
+      <div class="member-row">
+        <input class="member-input" aria-label="Nome do colega">
+        <button class="icon-button remove-member" type="button" title="Remover colega" aria-label="Remover colega">&times;</button>
+      </div>
+    </template>
+
+    <template id="taskTemplate">
+      <article class="task-item">
+        <label class="status-check">
+          <input class="task-done" type="checkbox">
+          <span></span>
+        </label>
+        <input class="task-title-input" aria-label="T&iacute;tulo da tarefa">
+        <select class="task-assignee-input" aria-label="Colega respons&aacute;vel"></select>
+        <button class="icon-button danger remove-task" type="button" title="Remover tarefa" aria-label="Remover tarefa">&times;</button>
+      </article>
+    </template>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
