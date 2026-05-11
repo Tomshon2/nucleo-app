@@ -42,9 +42,6 @@ let eventsEnabled = true;
 function setStatus(message, type = "idle") {
   if (type === "error") {
     console.warn(message);
-    if (!appShell.hidden) {
-      window.alert(message);
-    }
   }
 }
 
@@ -446,9 +443,10 @@ function renderTasks() {
 
 function renderEvents() {
   eventList.replaceChildren();
+  setEventFormEnabled(eventsEnabled);
 
   if (!eventsEnabled) {
-    eventList.append(emptyState("Corre a migracao SQL para ativar a area de eventos."));
+    eventList.append(emptyState("Eventos ainda nao estao ativos. Corre o SQL atualizado no Supabase para criar a tabela eventos."));
     return;
   }
 
@@ -495,6 +493,12 @@ function renderEvents() {
     });
 
     eventList.append(node);
+  });
+}
+
+function setEventFormEnabled(enabled) {
+  eventForm.querySelectorAll("input, select, button").forEach((control) => {
+    control.disabled = !enabled;
   });
 }
 
