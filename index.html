@@ -13,12 +13,13 @@
         <div>
           <p class="eyebrow">N&uacute;cleo</p>
           <h1>Organiza&ccedil;&atilde;o e tarefas</h1>
+          <p class="hero-copy">Painel do n&uacute;cleo para acompanhar equipa, tarefas e eventos num s&oacute; lugar.</p>
         </div>
       </div>
       <div class="header-actions">
         <span class="user-email" id="userEmail" hidden></span>
         <button class="ghost-button" id="logoutButton" type="button" hidden>Sair</button>
-        <button class="ghost-button" id="resetDemoButton" type="button" hidden>Limpar tudo</button>
+        <button class="danger-button" id="resetDemoButton" type="button" hidden>Limpar tudo</button>
       </div>
     </header>
 
@@ -40,6 +41,29 @@
     </section>
 
     <main class="app-shell" id="appShell" hidden>
+      <section class="summary-grid" aria-label="Resumo do painel">
+        <article class="summary-card">
+          <span class="summary-label">Cargos</span>
+          <strong id="rolesStat">0</strong>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">Colegas</span>
+          <strong id="membersStat">0</strong>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">Tarefas abertas</span>
+          <strong id="openTasksStat">0</strong>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">Tarefas feitas</span>
+          <strong id="doneTasksStat">0</strong>
+        </article>
+        <article class="summary-card accent-summary">
+          <span class="summary-label">Pr&oacute;ximos eventos</span>
+          <strong id="upcomingEventsStat">0</strong>
+        </article>
+      </section>
+
       <section class="panel hierarchy-panel" aria-labelledby="rolesTitle">
         <div class="section-title">
           <div>
@@ -53,8 +77,8 @@
 
         <form class="add-form" id="roleForm">
           <label>
-            Cargo
-            <input id="roleNameInput" name="roleName" placeholder="Ex.: Presidente" required>
+            Nome do cargo
+            <input id="roleNameInput" name="roleName" placeholder="Ex.: Dire&ccedil;&atilde;o, Marketing, Tesouraria" required>
           </label>
           <button type="submit">Adicionar cargo</button>
         </form>
@@ -78,7 +102,7 @@
         <form class="task-form" id="taskForm">
           <label class="task-name-field">
             Tarefa
-            <input id="taskTitleInput" name="taskTitle" placeholder="Ex.: Preparar ata da reuni&atilde;o" required>
+            <input id="taskTitleInput" name="taskTitle" placeholder="Ex.: Preparar ata da pr&oacute;xima reuni&atilde;o" required>
           </label>
           <label>
             Colegas
@@ -122,23 +146,28 @@
       <article class="role-card">
         <div class="role-card-header">
           <div class="role-rank"></div>
-          <input class="role-name-input" aria-label="Nome do cargo">
+          <div class="role-heading">
+            <span>Nome do cargo</span>
+            <input class="role-name-input" aria-label="Nome do cargo">
+          </div>
           <div class="icon-actions">
             <button class="icon-button move-up" type="button" title="Subir cargo" aria-label="Subir cargo">&uarr;</button>
             <button class="icon-button move-down" type="button" title="Descer cargo" aria-label="Descer cargo">&darr;</button>
             <button class="icon-button danger remove-role" type="button" title="Remover cargo" aria-label="Remover cargo">&times;</button>
           </div>
         </div>
+        <p class="subsection-label">Membros do cargo</p>
         <div class="member-list"></div>
         <form class="member-form">
-          <input class="member-name-input" placeholder="Nome do colega" aria-label="Nome do colega" required>
-          <button type="submit">Adicionar nome</button>
+          <input class="member-name-input" placeholder="Nome do novo colega" aria-label="Nome do colega" required>
+          <button type="submit">Adicionar colega</button>
         </form>
       </article>
     </template>
 
     <template id="memberTemplate">
       <div class="member-row">
+        <span class="member-avatar" aria-hidden="true"></span>
         <input class="member-input" aria-label="Nome do colega">
         <button class="icon-button remove-member" type="button" title="Remover colega" aria-label="Remover colega">&times;</button>
       </div>
@@ -150,8 +179,13 @@
           <input class="task-done" type="checkbox">
           <span></span>
         </label>
-        <input class="task-title-input" aria-label="T&iacute;tulo da tarefa">
-        <div class="task-assignee-input assignee-picker" role="group" aria-label="Colegas respons&aacute;veis"></div>
+        <div class="task-content">
+          <input class="task-title-input" aria-label="T&iacute;tulo da tarefa">
+          <div class="task-meta">
+            <span>Respons&aacute;veis</span>
+            <div class="task-assignee-input assignee-picker" role="group" aria-label="Colegas respons&aacute;veis"></div>
+          </div>
+        </div>
         <button class="icon-button danger remove-task" type="button" title="Remover tarefa" aria-label="Remover tarefa">&times;</button>
       </article>
     </template>
@@ -162,12 +196,36 @@
           <input class="event-done" type="checkbox">
           <span></span>
         </label>
-        <input class="event-title-input" aria-label="Nome do evento">
-        <input class="event-date-input" type="date" aria-label="Data do evento">
-        <select class="event-owner-input" aria-label="Respons&aacute;vel pelo evento"></select>
+        <div class="event-content">
+          <input class="event-title-input" aria-label="Nome do evento">
+          <div class="event-details">
+            <label>
+              Data
+              <input class="event-date-input" type="date" aria-label="Data do evento">
+            </label>
+            <label>
+              Respons&aacute;vel
+              <select class="event-owner-input" aria-label="Respons&aacute;vel pelo evento"></select>
+            </label>
+          </div>
+        </div>
         <button class="icon-button danger remove-event" type="button" title="Remover evento" aria-label="Remover evento">&times;</button>
       </article>
     </template>
+
+    <dialog class="confirm-dialog" id="confirmDialog">
+      <form method="dialog">
+        <p class="eyebrow">Confirmar a&ccedil;&atilde;o</p>
+        <h2 id="confirmTitle">Tens a certeza?</h2>
+        <p id="confirmMessage"></p>
+        <div class="dialog-actions">
+          <button class="ghost-button" value="cancel" type="button" id="confirmCancel">Cancelar</button>
+          <button class="danger-button" value="confirm" type="button" id="confirmAccept">Confirmar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script type="module" src="/app.js"></script>
   </body>

@@ -36,8 +36,20 @@ const eventTemplate = document.querySelector("#eventTemplate");
 const memberCount = document.querySelector("#memberCount");
 const resetDemoButton = document.querySelector("#resetDemoButton");
 const filterButtons = document.querySelectorAll(".filter-button");
+const rolesStat = document.querySelector("#rolesStat");
+const membersStat = document.querySelector("#membersStat");
+const openTasksStat = document.querySelector("#openTasksStat");
+const doneTasksStat = document.querySelector("#doneTasksStat");
+const upcomingEventsStat = document.querySelector("#upcomingEventsStat");
+const confirmDialog = document.querySelector("#confirmDialog");
+const confirmTitle = document.querySelector("#confirmTitle");
+const confirmMessage = document.querySelector("#confirmMessage");
+const confirmCancel = document.querySelector("#confirmCancel");
+const confirmAccept = document.querySelector("#confirmAccept");
+const toast = document.querySelector("#toast");
 let taskAssigneeLinksEnabled = true;
 let eventsEnabled = true;
+let toastTimer = null;
 
 function setStatus(message, type = "idle") {
   if (type === "error") {
@@ -184,11 +196,26 @@ async function loadTaskAssigneeLinks() {
 }
 
 function render() {
+  renderStats();
   renderRoles();
   renderAssigneePicker(taskAssigneeInput);
   renderOwnerOptions(eventOwnerInput);
   renderTasks();
   renderEvents();
+}
+
+function renderStats() {
+  const members = getMembers();
+  const openTasks = state.tasks.filter((task) => !task.done).length;
+  const doneTasks = state.tasks.filter((task) => task.done).length;
+  const today = new Date().toISOString().slice(0, 10);
+  const upcomingEvents = state.events.filter((event) => !event.done && (!event.date || event.date >= today)).length;
+
+  rolesStat.textContent = state.roles.length;
+  membersStat.textContent = members.length;
+  openTasksStat.textContent = openTasks;
+  doneTasksStat.textContent = doneTasks;
+  upcomingEventsStat.textContent = upcomingEvents;
 }
 
 async function initAuth() {
@@ -281,7 +308,12 @@ function renderRoles() {
     });
 
     removeRole.addEventListener("click", async () => {
-      if (!confirm(`Remover o cargo "${role.name}" e os nomes dentro dele?`)) return;
+      const confirmed = await askConfirmation({
+        title: "Remover cargo",
+        message: `Isto vai remover "${role.name}" e os membros dentro desse cargo.`,
+        action: "Remover cargo",
+      });
+      if (!confirmed) return;
       await deleteRole(role.id);
     });
 
@@ -318,7 +350,12 @@ function renderMemberRow(role, member) {
   });
 
   remove.addEventListener("click", async () => {
-    if (!confirm(`Remover "${member.name}"?`)) return;
+    const confirmed = await askConfirmation({
+      title: "Remover colega",
+      message: `Queres remover "${member.name}" deste cargo?`,
+      action: "Remover colega",
+    });
+    if (!confirmed) return;
     await deleteMember(member.id);
   });
 
@@ -433,7 +470,12 @@ function renderTasks() {
     });
 
     remove.addEventListener("click", async () => {
-      if (!confirm(`Remover a tarefa "${task.title}"?`)) return;
+      const confirmed = await askConfirmation({
+        title: "Remover tarefa",
+        message: `Queres remover a tarefa "${task.title}"?`,
+        action: "Remover tarefa",
+      });
+      if (!confirmed) return;
       await deleteTask(task.id);
     });
 
@@ -488,7 +530,12 @@ function renderEvents() {
     });
 
     remove.addEventListener("click", async () => {
-      if (!confirm(`Remover o evento "${event.title}"?`)) return;
+      const confirmed = await askConfirmation({
+        title: "Remover evento",
+        message: `Queres remover o evento "${event.title}"?`,
+        action: "Remover evento",
+      });
+      if (!confirmed) return;
       await deleteEvent(event.id);
     });
 
@@ -509,7 +556,40 @@ function emptyState(text) {
   return element;
 }
 
-async function runMutation(action) {
+function showToast(message) {
+  toast.textContent = message;
+  toast.classList.add("visible");
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => {
+    toast.classList.remove("visible");
+  }, 2600);
+}
+
+function askConfirmation({ title, message, action = "Confirmar" }) {
+  return new Promise((resolve) => {
+    confirmTitle.textContent = title;
+    confirmMessage.textContent = message;
+    confirmAccept.textContent = action;
+
+    const cleanup = (value) => {
+      confirmCancel.removeEventListener("click", onCancel);
+      confirmAccept.removeEventListener("click", onConfirm);
+      confirmDialog.removeEventListener("close", onClose);
+      if (confirmDialog.open) confirmDialog.close();
+      resolve(value);
+    };
+    const onCancel = () => cleanup(false);
+    const onConfirm = () => cleanup(true);
+    const onClose = () => cleanup(false);
+
+    confirmCancel.addEventListener("click", onCancel);
+    confirmAccept.addEventListener("click", onConfirm);
+    confirmDialog.addEventListener("close", onClose, { once: true });
+    confirmDialog.showModal();
+  });
+}
+
+async function runMutation(action, successMessage = "") {
   if (!hasSupabaseConfig) {
     setStatus("Configura primeiro o .env", "error");
     return;
@@ -526,6 +606,7 @@ async function runMutation(action) {
   try {
     await action();
     await loadState();
+    if (successMessage) showToast(successMessage);
   } catch (error) {
     console.error(error);
     setStatus(`Erro: ${getFriendlyErrorMessage(error)}`, "error");
@@ -538,14 +619,14 @@ async function createRole(name) {
   await runMutation(async () => {
     const { error } = await supabase.from("cargos").insert({ nome: name });
     throwIfError(error);
-  });
+  }, "Cargo adicionado.");
 }
 
 async function updateRole(id, name) {
   await runMutation(async () => {
     const { error } = await supabase.from("cargos").update({ nome: name }).eq("id", id);
     throwIfError(error);
-  });
+  }, "Cargo atualizado.");
 }
 
 async function deleteRole(id) {
@@ -558,28 +639,28 @@ async function deleteRole(id) {
 
     const { error } = await supabase.from("cargos").delete().eq("id", id);
     throwIfError(error);
-  });
+  }, "Cargo removido.");
 }
 
 async function createMember(roleId, name) {
   await runMutation(async () => {
     const { error } = await supabase.from("colegas").insert({ nome: name, cargo_id: roleId });
     throwIfError(error);
-  });
+  }, "Colega adicionado.");
 }
 
 async function updateMember(id, name) {
   await runMutation(async () => {
     const { error } = await supabase.from("colegas").update({ nome: name }).eq("id", id);
     throwIfError(error);
-  });
+  }, "Colega atualizado.");
 }
 
 async function deleteMember(id) {
   await runMutation(async () => {
     const { error } = await supabase.from("colegas").delete().eq("id", id);
     throwIfError(error);
-  });
+  }, "Colega removido.");
 }
 
 async function createTask(title, assigneeId) {
@@ -593,7 +674,7 @@ async function createTask(title, assigneeId) {
     }).select("id").single();
     throwIfError(error);
     await saveTaskAssigneeLinks(data.id, assigneeIds);
-  });
+  }, "Tarefa adicionada.");
 }
 
 async function updateTask(id, values) {
@@ -609,7 +690,7 @@ async function updateTaskAssignees(id, assigneeIds) {
     const { error } = await supabase.from("tarefas").update({ colega_id: assigneeIds[0] || null }).eq("id", id);
     throwIfError(error);
     await saveTaskAssigneeLinks(id, assigneeIds);
-  });
+  }, "Responsaveis atualizados.");
 }
 
 function requireTaskAssigneeLinks(assigneeIds) {
@@ -645,7 +726,7 @@ async function deleteTask(id) {
     }
     const { error } = await supabase.from("tarefas").delete().eq("id", id);
     throwIfError(error);
-  });
+  }, "Tarefa removida.");
 }
 
 async function createEvent(title, date, ownerId) {
@@ -660,21 +741,21 @@ async function createEvent(title, date, ownerId) {
       concluido: false,
     });
     throwIfError(error);
-  });
+  }, "Evento adicionado.");
 }
 
 async function updateEvent(id, values) {
   await runMutation(async () => {
     const { error } = await supabase.from("eventos").update(values).eq("id", id);
     throwIfError(error);
-  });
+  }, "Evento atualizado.");
 }
 
 async function deleteEvent(id) {
   await runMutation(async () => {
     const { error } = await supabase.from("eventos").delete().eq("id", id);
     throwIfError(error);
-  });
+  }, "Evento removido.");
 }
 
 roleForm.addEventListener("submit", async (event) => {
@@ -714,7 +795,12 @@ filterButtons.forEach((button) => {
 });
 
 resetDemoButton.addEventListener("click", async () => {
-  if (!confirm("Queres apagar todos os cargos, nomes e tarefas da base de dados?")) return;
+  const confirmed = await askConfirmation({
+    title: "Limpar todo o painel",
+    message: "Esta acao remove cargos, colegas, tarefas e eventos. Nao pode ser anulada.",
+    action: "Limpar tudo",
+  });
+  if (!confirmed) return;
 
   await runMutation(async () => {
     const eventsResult = eventsEnabled
@@ -734,7 +820,7 @@ resetDemoButton.addEventListener("click", async () => {
     throwIfError(tasksResult.error);
     throwIfError(membersResult.error);
     throwIfError(rolesResult.error);
-  });
+  }, "Painel limpo.");
 });
 
 authForm.addEventListener("submit", async (event) => {
