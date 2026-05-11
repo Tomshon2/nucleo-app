@@ -53,3 +53,23 @@ select id, colega_id
 from tarefas
 where colega_id is not null
 on conflict do nothing;
+
+create table if not exists eventos (
+  id uuid primary key default gen_random_uuid(),
+  titulo text not null,
+  data_evento date,
+  colega_id uuid references colegas(id) on delete set null,
+  concluido boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+alter table eventos enable row level security;
+
+drop policy if exists "authenticated full access eventos" on eventos;
+
+create policy "authenticated full access eventos"
+on eventos
+for all
+to authenticated
+using (true)
+with check (true);

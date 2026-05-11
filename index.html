@@ -82,12 +82,39 @@
           </label>
           <label>
             Colegas
-            <select id="taskAssigneeInput" name="taskAssignee" multiple></select>
+            <div class="assignee-picker" id="taskAssigneeInput" role="group" aria-label="Colegas respons&aacute;veis"></div>
           </label>
           <button type="submit">Adicionar</button>
         </form>
 
         <div class="task-list" id="taskList" aria-live="polite"></div>
+      </section>
+
+      <section class="panel events-panel" aria-labelledby="eventsTitle">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Eventos</p>
+            <h2 id="eventsTitle">Eventos a realizar</h2>
+          </div>
+        </div>
+
+        <form class="event-form" id="eventForm">
+          <label class="event-name-field">
+            Evento
+            <input id="eventTitleInput" name="eventTitle" placeholder="Ex.: Sess&atilde;o de acolhimento" required>
+          </label>
+          <label>
+            Data
+            <input id="eventDateInput" name="eventDate" type="date">
+          </label>
+          <label>
+            Respons&aacute;vel
+            <select id="eventOwnerInput" name="eventOwner"></select>
+          </label>
+          <button type="submit">Adicionar evento</button>
+        </form>
+
+        <div class="event-list" id="eventList" aria-live="polite"></div>
       </section>
     </main>
 
@@ -124,8 +151,21 @@
           <span></span>
         </label>
         <input class="task-title-input" aria-label="T&iacute;tulo da tarefa">
-        <select class="task-assignee-input" aria-label="Colegas respons&aacute;veis" multiple></select>
+        <div class="task-assignee-input assignee-picker" role="group" aria-label="Colegas respons&aacute;veis"></div>
         <button class="icon-button danger remove-task" type="button" title="Remover tarefa" aria-label="Remover tarefa">&times;</button>
+      </article>
+    </template>
+
+    <template id="eventTemplate">
+      <article class="event-item">
+        <label class="status-check">
+          <input class="event-done" type="checkbox">
+          <span></span>
+        </label>
+        <input class="event-title-input" aria-label="Nome do evento">
+        <input class="event-date-input" type="date" aria-label="Data do evento">
+        <select class="event-owner-input" aria-label="Respons&aacute;vel pelo evento"></select>
+        <button class="icon-button danger remove-event" type="button" title="Remover evento" aria-label="Remover evento">&times;</button>
       </article>
     </template>
 

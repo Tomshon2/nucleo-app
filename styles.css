@@ -31,7 +31,8 @@ body {
 
 button,
 input,
-select {
+select,
+.assignee-picker {
   font: inherit;
 }
 
@@ -206,7 +207,8 @@ body.is-busy select {
 
 .add-form,
 .task-form,
-.member-form {
+.member-form,
+.event-form {
   display: grid;
   gap: 10px;
 }
@@ -218,7 +220,13 @@ body.is-busy select {
 }
 
 .task-form {
-  grid-template-columns: minmax(0, 1fr) minmax(210px, 280px) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px) auto;
+  align-items: end;
+  margin-bottom: 18px;
+}
+
+.event-form {
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 180px) minmax(190px, 230px) auto;
   align-items: end;
   margin-bottom: 18px;
 }
@@ -262,6 +270,7 @@ select:focus {
 .add-form button,
 .task-form button,
 .member-form button,
+.event-form button,
 .ghost-button {
   min-height: 42px;
   border-radius: 7px;
@@ -280,7 +289,8 @@ select:focus {
 
 .role-list,
 .task-list,
-.member-list {
+.member-list,
+.event-list {
   display: grid;
   gap: 12px;
 }
@@ -312,8 +322,50 @@ select:focus {
 
 .role-name-input,
 .member-input,
-.task-title-input {
+.task-title-input,
+.event-title-input {
   font-weight: 800;
+}
+
+.assignee-picker {
+  display: flex;
+  min-height: 44px;
+  align-content: flex-start;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px;
+}
+
+.assignee-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: auto;
+  min-height: 34px;
+  border: 1px solid rgba(8, 71, 53, 0.18);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--accent-strong);
+  padding: 6px 10px;
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.assignee-chip input {
+  width: 16px;
+  min-height: 16px;
+  accent-color: var(--accent);
+}
+
+.picker-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
 }
 
 .icon-actions {
@@ -393,7 +445,18 @@ select:focus {
 
 .task-item {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) minmax(210px, 280px) 42px;
+  grid-template-columns: 32px minmax(0, 1fr) minmax(260px, 340px) 42px;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 10px;
+}
+
+.event-item {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) minmax(140px, 170px) minmax(180px, 220px) 42px;
   gap: 8px;
   align-items: center;
   border: 1px solid var(--line);
@@ -417,7 +480,8 @@ select:focus {
   background: #f2f4f0;
 }
 
-.task-item.done .task-title-input {
+.task-item.done .task-title-input,
+.event-item.done .event-title-input {
   color: var(--muted);
   text-decoration: line-through;
 }
@@ -442,8 +506,10 @@ select:focus {
   .add-form,
   .task-form,
   .member-form,
+  .event-form,
   .role-card-header,
-  .task-item {
+  .task-item,
+  .event-item {
     grid-template-columns: 1fr;
   }
 

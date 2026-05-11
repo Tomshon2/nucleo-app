@@ -3,6 +3,7 @@ import { supabase, hasSupabaseConfig } from "./supabaseClient.js";
 let state = {
   roles: [],
   tasks: [],
+  events: [],
   filter: "all",
 };
 
@@ -26,10 +27,17 @@ const taskTitleInput = document.querySelector("#taskTitleInput");
 const taskAssigneeInput = document.querySelector("#taskAssigneeInput");
 const taskList = document.querySelector("#taskList");
 const taskTemplate = document.querySelector("#taskTemplate");
+const eventForm = document.querySelector("#eventForm");
+const eventTitleInput = document.querySelector("#eventTitleInput");
+const eventDateInput = document.querySelector("#eventDateInput");
+const eventOwnerInput = document.querySelector("#eventOwnerInput");
+const eventList = document.querySelector("#eventList");
+const eventTemplate = document.querySelector("#eventTemplate");
 const memberCount = document.querySelector("#memberCount");
 const resetDemoButton = document.querySelector("#resetDemoButton");
 const filterButtons = document.querySelectorAll(".filter-button");
 let taskAssigneeLinksEnabled = true;
+let eventsEnabled = true;
 
 function setStatus(message, type = "idle") {
   if (type === "error") {
@@ -58,10 +66,11 @@ async function loadState() {
   setStatus("A carregar dados...", "idle");
 
   try {
-    const [rolesResult, membersResult, tasksResult] = await Promise.all([
+    const [rolesResult, membersResult, tasksResult, eventsResult] = await Promise.all([
       supabase.from("cargos").select("id,nome,created_at").order("created_at", { ascending: true }),
       supabase.from("colegas").select("id,nome,cargo_id,created_at").order("created_at", { ascending: true }),
       supabase.from("tarefas").select("id,titulo,colega_id,concluida,created_at").order("created_at", { ascending: false }),
+      loadEvents(),
     ]);
 
     throwIfError(rolesResult.error);
@@ -96,6 +105,7 @@ async function loadState() {
       done: Boolean(task.concluida),
       createdAt: task.created_at,
     }));
+    state.events = eventsResult;
 
     render();
   } catch (error) {
@@ -131,6 +141,30 @@ function getMembers() {
   );
 }
 
+async function loadEvents() {
+  const result = await supabase
+    .from("eventos")
+    .select("id,titulo,data_evento,colega_id,concluido,created_at")
+    .order("data_evento", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (result.error) {
+    eventsEnabled = false;
+    console.warn("Tabela eventos ainda nao existe. Corre a migracao SQL para ativar eventos.");
+    return [];
+  }
+
+  eventsEnabled = true;
+  return result.data.map((event) => ({
+    id: event.id,
+    title: event.titulo,
+    date: event.data_evento || "",
+    ownerId: event.colega_id || "",
+    done: Boolean(event.concluido),
+    createdAt: event.created_at,
+  }));
+}
+
 async function loadTaskAssigneeLinks() {
   const linksByTask = new Map();
   const result = await supabase.from("tarefa_colegas").select("tarefa_id,colega_id");
@@ -154,8 +188,10 @@ async function loadTaskAssigneeLinks() {
 
 function render() {
   renderRoles();
-  renderAssigneeOptions(taskAssigneeInput);
+  renderAssigneePicker(taskAssigneeInput);
+  renderOwnerOptions(eventOwnerInput);
   renderTasks();
+  renderEvents();
 }
 
 async function initAuth() {
@@ -197,7 +233,7 @@ function updateAuthView(session) {
 
 function showLoggedOut(message = "") {
   currentSession = null;
-  state = { roles: [], tasks: [], filter: "all" };
+  state = { roles: [], tasks: [], events: [], filter: "all" };
   appShell.hidden = true;
   authGate.hidden = false;
   logoutButton.hidden = true;
@@ -310,28 +346,50 @@ async function swapRoles(from, to) {
 }
 
 function getSelectedValues(select) {
-  return Array.from(select.selectedOptions || [])
-    .map((option) => option.value)
+  return Array.from(select.querySelectorAll("input[type='checkbox']:checked"))
+    .map((input) => input.value)
     .filter(Boolean);
 }
 
-function renderAssigneeOptions(select, selectedValues = getSelectedValues(select)) {
+function renderAssigneePicker(container, selectedValues = getSelectedValues(container)) {
   const members = getMembers();
   const selectedSet = new Set(Array.isArray(selectedValues) ? selectedValues : [selectedValues].filter(Boolean));
-  select.replaceChildren();
+  container.replaceChildren();
 
   if (members.length === 0) {
-    const option = new Option("Adiciona colegas primeiro", "");
-    option.disabled = true;
-    select.append(option);
+    const empty = document.createElement("p");
+    empty.className = "picker-empty";
+    empty.textContent = "Adiciona colegas primeiro.";
+    container.append(empty);
     return;
   }
 
   members.forEach((member) => {
-    const option = new Option(`${member.name} - ${member.roleName}`, member.id);
-    option.selected = selectedSet.has(member.id);
-    select.append(option);
+    const label = document.createElement("label");
+    label.className = "assignee-chip";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = member.id;
+    input.checked = selectedSet.has(member.id);
+
+    const text = document.createElement("span");
+    text.textContent = `${member.name} - ${member.roleName}`;
+
+    label.append(input, text);
+    container.append(label);
   });
+}
+
+function renderOwnerOptions(select, selectedValue = select.value) {
+  const members = getMembers();
+  select.replaceChildren(new Option("Sem responsavel", ""));
+
+  members.forEach((member) => {
+    select.append(new Option(`${member.name} - ${member.roleName}`, member.id));
+  });
+
+  select.value = members.some((member) => member.id === selectedValue) ? selectedValue : "";
 }
 
 function renderTasks() {
@@ -361,7 +419,7 @@ function renderTasks() {
     node.classList.toggle("done", task.done);
     done.checked = task.done;
     title.value = task.title;
-    renderAssigneeOptions(assignee, task.assigneeIds);
+    renderAssigneePicker(assignee, task.assigneeIds);
 
     done.addEventListener("change", async () => {
       await updateTask(task.id, { concluida: done.checked });
@@ -383,6 +441,60 @@ function renderTasks() {
     });
 
     taskList.append(node);
+  });
+}
+
+function renderEvents() {
+  eventList.replaceChildren();
+
+  if (!eventsEnabled) {
+    eventList.append(emptyState("Corre a migracao SQL para ativar a area de eventos."));
+    return;
+  }
+
+  if (state.events.length === 0) {
+    eventList.append(emptyState("Sem eventos planeados."));
+    return;
+  }
+
+  state.events.forEach((event) => {
+    const node = eventTemplate.content.firstElementChild.cloneNode(true);
+    const done = node.querySelector(".event-done");
+    const title = node.querySelector(".event-title-input");
+    const date = node.querySelector(".event-date-input");
+    const owner = node.querySelector(".event-owner-input");
+    const remove = node.querySelector(".remove-event");
+
+    node.classList.toggle("done", event.done);
+    done.checked = event.done;
+    title.value = event.title;
+    date.value = event.date;
+    renderOwnerOptions(owner, event.ownerId);
+
+    done.addEventListener("change", async () => {
+      await updateEvent(event.id, { concluido: done.checked });
+    });
+
+    title.addEventListener("change", async () => {
+      const value = title.value.trim();
+      if (!value || value === event.title) return;
+      await updateEvent(event.id, { titulo: value });
+    });
+
+    date.addEventListener("change", async () => {
+      await updateEvent(event.id, { data_evento: date.value || null });
+    });
+
+    owner.addEventListener("change", async () => {
+      await updateEvent(event.id, { colega_id: owner.value || null });
+    });
+
+    remove.addEventListener("click", async () => {
+      if (!confirm(`Remover o evento "${event.title}"?`)) return;
+      await deleteEvent(event.id);
+    });
+
+    eventList.append(node);
   });
 }
 
@@ -532,6 +644,35 @@ async function deleteTask(id) {
   });
 }
 
+async function createEvent(title, date, ownerId) {
+  await runMutation(async () => {
+    if (!eventsEnabled) {
+      throw new Error("Para adicionar eventos, corre primeiro o SQL de migracao eventos no Supabase.");
+    }
+    const { error } = await supabase.from("eventos").insert({
+      titulo: title,
+      data_evento: date || null,
+      colega_id: ownerId || null,
+      concluido: false,
+    });
+    throwIfError(error);
+  });
+}
+
+async function updateEvent(id, values) {
+  await runMutation(async () => {
+    const { error } = await supabase.from("eventos").update(values).eq("id", id);
+    throwIfError(error);
+  });
+}
+
+async function deleteEvent(id) {
+  await runMutation(async () => {
+    const { error } = await supabase.from("eventos").delete().eq("id", id);
+    throwIfError(error);
+  });
+}
+
 roleForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const name = roleNameInput.value.trim();
@@ -546,9 +687,19 @@ taskForm.addEventListener("submit", async (event) => {
   if (!title) return;
   await createTask(title, getSelectedValues(taskAssigneeInput));
   taskTitleInput.value = "";
-  Array.from(taskAssigneeInput.options).forEach((option) => {
-    option.selected = false;
+  Array.from(taskAssigneeInput.querySelectorAll("input[type='checkbox']")).forEach((input) => {
+    input.checked = false;
   });
+});
+
+eventForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const title = eventTitleInput.value.trim();
+  if (!title) return;
+  await createEvent(title, eventDateInput.value, eventOwnerInput.value);
+  eventTitleInput.value = "";
+  eventDateInput.value = "";
+  eventOwnerInput.value = "";
 });
 
 filterButtons.forEach((button) => {
@@ -562,6 +713,9 @@ resetDemoButton.addEventListener("click", async () => {
   if (!confirm("Queres apagar todos os cargos, nomes e tarefas da base de dados?")) return;
 
   await runMutation(async () => {
+    const eventsResult = eventsEnabled
+      ? await supabase.from("eventos").delete().neq("id", "00000000-0000-0000-0000-000000000000")
+      : { error: null };
     const taskLinksResult = taskAssigneeLinksEnabled
       ? await supabase.from("tarefa_colegas").delete().neq("tarefa_id", "00000000-0000-0000-0000-000000000000")
       : { error: null };
@@ -571,6 +725,7 @@ resetDemoButton.addEventListener("click", async () => {
       supabase.from("cargos").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
     ]);
 
+    throwIfError(eventsResult.error);
     throwIfError(taskLinksResult.error);
     throwIfError(tasksResult.error);
     throwIfError(membersResult.error);
