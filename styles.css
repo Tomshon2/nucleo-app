@@ -1,16 +1,16 @@
 :root {
   color-scheme: light;
-  --bg: #f6f7f4;
+  --bg: #f4f5f1;
   --surface: #ffffff;
-  --surface-soft: #eef3f0;
-  --text: #17201c;
-  --muted: #65736c;
-  --line: #d8dfda;
-  --accent: #1d6f5a;
-  --accent-strong: #0f513f;
-  --amber: #a76114;
-  --red: #b23b3b;
-  --shadow: 0 18px 45px rgba(31, 45, 38, 0.11);
+  --surface-soft: #edf2ef;
+  --text: #101a16;
+  --muted: #65726d;
+  --line: #d9e0dc;
+  --accent: #166b58;
+  --accent-strong: #084735;
+  --gold: #b98b3d;
+  --red: #a63f3f;
+  --shadow: 0 18px 46px rgba(22, 42, 35, 0.10);
 }
 
 * {
@@ -21,11 +21,12 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    linear-gradient(135deg, rgba(29, 111, 90, 0.10), transparent 34%),
-    linear-gradient(225deg, rgba(167, 97, 20, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.22) 42%, transparent),
+    linear-gradient(135deg, rgba(22, 107, 88, 0.11), transparent 34%),
+    linear-gradient(225deg, rgba(185, 139, 61, 0.12), transparent 30%),
     var(--bg);
   color: var(--text);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
 }
 
 button,
@@ -55,7 +56,30 @@ body.is-busy select {
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 32px clamp(18px, 4vw, 52px) 18px;
+  padding: 34px clamp(18px, 4vw, 56px) 20px;
+}
+
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 2.4vw, 24px);
+}
+
+.logo-mark {
+  display: grid;
+  width: clamp(62px, 8vw, 86px);
+  height: clamp(62px, 8vw, 86px);
+  place-items: center;
+  border: 2px solid rgba(8, 71, 53, 0.72);
+  border-radius: 50%;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(237, 242, 239, 0.88)),
+    var(--surface);
+  box-shadow: 0 12px 28px rgba(8, 71, 53, 0.12);
+  color: var(--accent-strong);
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  font-weight: 950;
+  letter-spacing: 0.06em;
 }
 
 .header-actions {
@@ -83,7 +107,8 @@ body.is-busy select {
 }
 
 .app-header h1 {
-  font-size: clamp(2rem, 5vw, 4.2rem);
+  max-width: 860px;
+  font-size: clamp(2rem, 5vw, 4rem);
 }
 
 .eyebrow {
@@ -143,9 +168,9 @@ body.is-busy select {
 
 .panel {
   min-width: 0;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(216, 223, 218, 0.95);
-  border-radius: 8px;
+  border-radius: 10px;
   box-shadow: var(--shadow);
   padding: clamp(16px, 2vw, 24px);
 }
@@ -166,9 +191,10 @@ body.is-busy select {
   flex: 0 0 auto;
   border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 8px 12px;
-  color: var(--muted);
-  font-weight: 700;
+  background: var(--surface-soft);
+  padding: 8px 13px;
+  color: var(--accent-strong);
+  font-weight: 800;
 }
 
 .header-meta {
@@ -176,24 +202,6 @@ body.is-busy select {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
-}
-
-.sync-status {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 8px 12px;
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.sync-status[data-type="success"] {
-  border-color: rgba(29, 111, 90, 0.25);
-  color: var(--accent-strong);
-}
-
-.sync-status[data-type="error"] {
-  border-color: rgba(178, 59, 59, 0.35);
-  color: var(--red);
 }
 
 .add-form,
@@ -210,7 +218,7 @@ body.is-busy select {
 }
 
 .task-form {
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 210px) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 280px) auto;
   align-items: end;
   margin-bottom: 18px;
 }
@@ -235,6 +243,16 @@ select {
   outline: none;
 }
 
+select[multiple] {
+  min-height: 88px;
+  padding: 8px;
+}
+
+select[multiple] option {
+  border-radius: 6px;
+  padding: 7px 8px;
+}
+
 input:focus,
 select:focus {
   border-color: var(--accent);
@@ -248,7 +266,7 @@ select:focus {
   min-height: 42px;
   border-radius: 7px;
   padding: 10px 14px;
-  background: var(--accent);
+  background: linear-gradient(180deg, #1d7b66, var(--accent));
   color: #fff;
   font-weight: 800;
   white-space: nowrap;
@@ -269,7 +287,7 @@ select:focus {
 
 .role-card {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--surface);
   padding: 12px;
 }
@@ -286,7 +304,7 @@ select:focus {
   width: 42px;
   height: 42px;
   place-items: center;
-  border-radius: 7px;
+  border-radius: 8px;
   background: var(--surface-soft);
   color: var(--accent-strong);
   font-weight: 900;
@@ -375,11 +393,11 @@ select:focus {
 
 .task-item {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) minmax(130px, 180px) 42px;
+  grid-template-columns: 32px minmax(0, 1fr) minmax(210px, 280px) 42px;
   gap: 8px;
   align-items: center;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--surface);
   padding: 10px;
 }
@@ -415,6 +433,10 @@ select:focus {
   .section-title {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .brand-lockup {
+    align-items: flex-start;
   }
 
   .add-form,

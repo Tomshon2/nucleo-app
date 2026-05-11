@@ -29,12 +29,15 @@ const taskTemplate = document.querySelector("#taskTemplate");
 const memberCount = document.querySelector("#memberCount");
 const resetDemoButton = document.querySelector("#resetDemoButton");
 const filterButtons = document.querySelectorAll(".filter-button");
-const syncStatus = document.querySelector("#syncStatus");
+let taskAssigneeLinksEnabled = true;
 
 function setStatus(message, type = "idle") {
-  if (!syncStatus) return;
-  syncStatus.textContent = message;
-  syncStatus.dataset.type = type;
+  if (type === "error") {
+    console.warn(message);
+    if (!appShell.hidden) {
+      window.alert(message);
+    }
+  }
 }
 
 function setBusy(isBusy) {
@@ -84,16 +87,17 @@ async function loadState() {
       members: membersByRole.get(role.id) || [],
     }));
 
+    const taskAssigneesByTask = await loadTaskAssigneeLinks();
+
     state.tasks = tasksResult.data.map((task) => ({
       id: task.id,
       title: task.titulo,
-      assigneeId: task.colega_id || "",
+      assigneeIds: taskAssigneesByTask.get(task.id) || (task.colega_id ? [task.colega_id] : []),
       done: Boolean(task.concluida),
       createdAt: task.created_at,
     }));
 
     render();
-    setStatus("Ligado ao Supabase", "success");
   } catch (error) {
     console.error(error);
     setStatus(`Erro: ${getFriendlyErrorMessage(error)}`, "error");
@@ -125,6 +129,27 @@ function getMembers() {
       roleName: role.name,
     })),
   );
+}
+
+async function loadTaskAssigneeLinks() {
+  const linksByTask = new Map();
+  const result = await supabase.from("tarefa_colegas").select("tarefa_id,colega_id");
+
+  if (result.error) {
+    taskAssigneeLinksEnabled = false;
+    console.warn("Tabela tarefa_colegas ainda nao existe. A app usa o primeiro responsavel ate correres a migracao SQL.");
+    return linksByTask;
+  }
+
+  taskAssigneeLinksEnabled = true;
+  result.data.forEach((link) => {
+    if (!linksByTask.has(link.tarefa_id)) {
+      linksByTask.set(link.tarefa_id, []);
+    }
+    linksByTask.get(link.tarefa_id).push(link.colega_id);
+  });
+
+  return linksByTask;
 }
 
 function render() {
@@ -284,15 +309,29 @@ async function swapRoles(from, to) {
   });
 }
 
-function renderAssigneeOptions(select, selectedValue = select.value) {
+function getSelectedValues(select) {
+  return Array.from(select.selectedOptions || [])
+    .map((option) => option.value)
+    .filter(Boolean);
+}
+
+function renderAssigneeOptions(select, selectedValues = getSelectedValues(select)) {
   const members = getMembers();
-  select.replaceChildren(new Option("Sem respons\u00e1vel", ""));
+  const selectedSet = new Set(Array.isArray(selectedValues) ? selectedValues : [selectedValues].filter(Boolean));
+  select.replaceChildren();
+
+  if (members.length === 0) {
+    const option = new Option("Adiciona colegas primeiro", "");
+    option.disabled = true;
+    select.append(option);
+    return;
+  }
 
   members.forEach((member) => {
-    select.append(new Option(`${member.name} - ${member.roleName}`, member.id));
+    const option = new Option(`${member.name} - ${member.roleName}`, member.id);
+    option.selected = selectedSet.has(member.id);
+    select.append(option);
   });
-
-  select.value = members.some((member) => member.id === selectedValue) ? selectedValue : "";
 }
 
 function renderTasks() {
@@ -322,7 +361,7 @@ function renderTasks() {
     node.classList.toggle("done", task.done);
     done.checked = task.done;
     title.value = task.title;
-    renderAssigneeOptions(assignee, task.assigneeId);
+    renderAssigneeOptions(assignee, task.assigneeIds);
 
     done.addEventListener("change", async () => {
       await updateTask(task.id, { concluida: done.checked });
@@ -335,7 +374,7 @@ function renderTasks() {
     });
 
     assignee.addEventListener("change", async () => {
-      await updateTask(task.id, { colega_id: assignee.value || null });
+      await updateTaskAssignees(task.id, getSelectedValues(assignee));
     });
 
     remove.addEventListener("click", async () => {
@@ -428,13 +467,16 @@ async function deleteMember(id) {
 }
 
 async function createTask(title, assigneeId) {
+  const assigneeIds = Array.isArray(assigneeId) ? assigneeId : [assigneeId].filter(Boolean);
   await runMutation(async () => {
-    const { error } = await supabase.from("tarefas").insert({
+    requireTaskAssigneeLinks(assigneeIds);
+    const { data, error } = await supabase.from("tarefas").insert({
       titulo: title,
-      colega_id: assigneeId || null,
+      colega_id: assigneeIds[0] || null,
       concluida: false,
-    });
+    }).select("id").single();
     throwIfError(error);
+    await saveTaskAssigneeLinks(data.id, assigneeIds);
   });
 }
 
@@ -445,8 +487,46 @@ async function updateTask(id, values) {
   });
 }
 
+async function updateTaskAssignees(id, assigneeIds) {
+  await runMutation(async () => {
+    requireTaskAssigneeLinks(assigneeIds);
+    const { error } = await supabase.from("tarefas").update({ colega_id: assigneeIds[0] || null }).eq("id", id);
+    throwIfError(error);
+    await saveTaskAssigneeLinks(id, assigneeIds);
+  });
+}
+
+function requireTaskAssigneeLinks(assigneeIds) {
+  if (!taskAssigneeLinksEnabled && assigneeIds.length > 1) {
+    throw new Error("Para atribuir varias pessoas a uma tarefa, corre primeiro o SQL de migracao tarefa_colegas no Supabase.");
+  }
+}
+
+async function saveTaskAssigneeLinks(taskId, assigneeIds) {
+  if (!taskAssigneeLinksEnabled && assigneeIds.length <= 1) return;
+
+  const deleteResult = await supabase.from("tarefa_colegas").delete().eq("tarefa_id", taskId);
+  if (deleteResult.error) {
+    taskAssigneeLinksEnabled = false;
+    throw new Error("Para atribuir varias pessoas a uma tarefa, corre primeiro o SQL de migracao tarefa_colegas no Supabase.");
+  }
+
+  if (assigneeIds.length === 0) return;
+
+  const rows = assigneeIds.map((memberId) => ({
+    tarefa_id: taskId,
+    colega_id: memberId,
+  }));
+  const insertResult = await supabase.from("tarefa_colegas").insert(rows);
+  throwIfError(insertResult.error);
+}
+
 async function deleteTask(id) {
   await runMutation(async () => {
+    if (taskAssigneeLinksEnabled) {
+      const linksResult = await supabase.from("tarefa_colegas").delete().eq("tarefa_id", id);
+      throwIfError(linksResult.error);
+    }
     const { error } = await supabase.from("tarefas").delete().eq("id", id);
     throwIfError(error);
   });
@@ -464,8 +544,11 @@ taskForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const title = taskTitleInput.value.trim();
   if (!title) return;
-  await createTask(title, taskAssigneeInput.value);
+  await createTask(title, getSelectedValues(taskAssigneeInput));
   taskTitleInput.value = "";
+  Array.from(taskAssigneeInput.options).forEach((option) => {
+    option.selected = false;
+  });
 });
 
 filterButtons.forEach((button) => {
@@ -479,12 +562,16 @@ resetDemoButton.addEventListener("click", async () => {
   if (!confirm("Queres apagar todos os cargos, nomes e tarefas da base de dados?")) return;
 
   await runMutation(async () => {
+    const taskLinksResult = taskAssigneeLinksEnabled
+      ? await supabase.from("tarefa_colegas").delete().neq("tarefa_id", "00000000-0000-0000-0000-000000000000")
+      : { error: null };
     const [tasksResult, membersResult, rolesResult] = await Promise.all([
       supabase.from("tarefas").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
       supabase.from("colegas").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
       supabase.from("cargos").delete().neq("id", "00000000-0000-0000-0000-000000000000"),
     ]);
 
+    throwIfError(taskLinksResult.error);
     throwIfError(tasksResult.error);
     throwIfError(membersResult.error);
     throwIfError(rolesResult.error);

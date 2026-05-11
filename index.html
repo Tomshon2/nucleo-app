@@ -8,9 +8,12 @@
   </head>
   <body>
     <header class="app-header">
-      <div>
-        <p class="eyebrow">N&uacute;cleo</p>
-        <h1>Organiza&ccedil;&atilde;o e tarefas</h1>
+      <div class="brand-lockup">
+        <div class="logo-mark" aria-label="Logotipo provis&oacute;rio do n&uacute;cleo">NEI</div>
+        <div>
+          <p class="eyebrow">N&uacute;cleo</p>
+          <h1>Organiza&ccedil;&atilde;o e tarefas</h1>
+        </div>
       </div>
       <div class="header-actions">
         <span class="user-email" id="userEmail" hidden></span>
@@ -44,7 +47,6 @@
             <h2 id="rolesTitle">Estrutura da equipa</h2>
           </div>
           <div class="header-meta">
-            <span class="sync-status" id="syncStatus" data-type="idle">A ligar...</span>
             <span class="count-pill" id="memberCount">0 colegas</span>
           </div>
         </div>
@@ -79,8 +81,8 @@
             <input id="taskTitleInput" name="taskTitle" placeholder="Ex.: Preparar ata da reuni&atilde;o" required>
           </label>
           <label>
-            Colega
-            <select id="taskAssigneeInput" name="taskAssignee"></select>
+            Colegas
+            <select id="taskAssigneeInput" name="taskAssignee" multiple></select>
           </label>
           <button type="submit">Adicionar</button>
         </form>
@@ -122,7 +124,7 @@
           <span></span>
         </label>
         <input class="task-title-input" aria-label="T&iacute;tulo da tarefa">
-        <select class="task-assignee-input" aria-label="Colega respons&aacute;vel"></select>
+        <select class="task-assignee-input" aria-label="Colegas respons&aacute;veis" multiple></select>
         <button class="icon-button danger remove-task" type="button" title="Remover tarefa" aria-label="Remover tarefa">&times;</button>
       </article>
     </template>

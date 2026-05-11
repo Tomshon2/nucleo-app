@@ -29,3 +29,27 @@ for all
 to authenticated
 using (true)
 with check (true);
+
+create table if not exists tarefa_colegas (
+  tarefa_id uuid not null references tarefas(id) on delete cascade,
+  colega_id uuid not null references colegas(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (tarefa_id, colega_id)
+);
+
+alter table tarefa_colegas enable row level security;
+
+drop policy if exists "authenticated full access tarefa_colegas" on tarefa_colegas;
+
+create policy "authenticated full access tarefa_colegas"
+on tarefa_colegas
+for all
+to authenticated
+using (true)
+with check (true);
+
+insert into tarefa_colegas (tarefa_id, colega_id)
+select id, colega_id
+from tarefas
+where colega_id is not null
+on conflict do nothing;
